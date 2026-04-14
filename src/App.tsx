@@ -15,9 +15,18 @@ const App = () => (
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/client/dashboard" element={<DashboardPage role="client" />} />
-          <Route path="/employee/dashboard" element={<DashboardPage role="employee" />} />
-          <Route path="/admin/dashboard" element={<DashboardPage role="admin" />} />
+          <Route
+            path="/client/dashboard"
+            element={<DashboardPage role="client" />}
+          />
+          <Route
+            path="/employee/dashboard"
+            element={<DashboardPage role="employee" />}
+          />
+          <Route
+            path="/admin/dashboard"
+            element={<DashboardPage role="admin" />}
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
