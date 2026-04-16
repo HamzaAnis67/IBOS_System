@@ -100,17 +100,62 @@ export default function LoginPage() {
     [],
   );
 
+  // const handleSubmit = async (e: FormEvent) => {
+  //   e.preventDefault();
+  //   setTouched({ email: true, password: true });
+  //   if (!emailValid) return showToast("Please enter a valid email", "error");
+  //   if (password.length < 8)
+  //     return showToast("Password must be at least 8 characters", "error");
+  //   setLoading(true);
+  //   await new Promise((r) => setTimeout(r, 1500));
+  //   setLoading(false);
+  //   showToast("Login successful! Redirecting...", "success");
+  //   setTimeout(() => navigate(`/${role}/dashboard`), 800);
+  // };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
+
+    // 1. Client-side validation (keep this!)
     if (!emailValid) return showToast("Please enter a valid email", "error");
     if (password.length < 8)
       return showToast("Password must be at least 8 characters", "error");
+
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
-    showToast("Login successful! Redirecting...", "success");
-    setTimeout(() => navigate(`/${role}/dashboard`), 800);
+
+    try {
+      // 2. The API Call
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }), // Send credentials
+      });
+
+      const data = await response.json();
+      if (role != data.data.user.role) {
+        showToast("You are trying to access in wrong role", "error");
+        return;
+      }
+      setRole(data.data.user.role);
+
+      if (!response.ok) {
+        // 3. Handle Backend Errors (e.g., 401 Unauthorized)
+        throw new Error(data.message || "Login failed");
+      }
+
+      // 4. Handle Success
+      // Save the token (JWT) to localStorage or a cookie
+      localStorage.setItem("token", data.token);
+
+      showToast("Login successful!", "success");
+      setTimeout(() => navigate(`/${role}/dashboard`), 800);
+    } catch (error: any) {
+      // 5. Handle Network or Server errors
+      showToast(error.message, "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotSubmit = (e: FormEvent) => {
