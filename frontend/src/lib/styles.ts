@@ -1,0 +1,2 @@
+export const premiumCard =
+  "bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all hover:border-[#7F77DD]/40 hover:shadow-[0_0_30px_rgba(127,119,221,0.15)]";

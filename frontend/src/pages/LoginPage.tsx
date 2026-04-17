@@ -110,7 +110,7 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 1500));
     setLoading(false);
     showToast("Login successful! Redirecting...", "success");
-    setTimeout(() => navigate(`/${role}/dashboard`), 800);
+    setTimeout(() => navigate(`/dashboard/${role}`), 800);
   };
 
   const handleForgotSubmit = (e: FormEvent) => {
