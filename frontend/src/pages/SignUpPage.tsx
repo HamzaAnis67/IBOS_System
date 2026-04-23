@@ -1,8 +1,6 @@
 import { useState, FormEvent, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-type Role = "client" | "employee" | "admin";
-
 interface Toast {
   message: string;
   type: "success" | "error";
@@ -73,24 +71,41 @@ function getPasswordStrength(pw: string) {
 const strengthLabels = ["Weak", "Weak", "Fair", "Good", "Strong"];
 const strengthColors = ["#E24B4A", "#E24B4A", "#F59E0B", "#22C55E", "#1D9E75"];
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const navigate = useNavigate();
-  const [role, setRole] = useState<Role>("client");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [department, setDepartment] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [touched, setTouched] = useState({ email: false, password: false });
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
+  const [touched, setTouched] = useState({
+    firstName: false,
+    lastName: false,
+    email: false,
+    phone: false,
+    department: false,
+    password: false,
+    confirmPassword: false,
+  });
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const phoneValid = /^[\d\s\-\+\(\)]+$/.test(phone) && phone.length >= 10;
   const passwordStrength = getPasswordStrength(password);
+  const passwordsMatch = password === confirmPassword;
+  
+  const firstNameError = touched.firstName && firstName.length === 0;
+  const lastNameError = touched.lastName && lastName.length === 0;
   const emailError = touched.email && !emailValid;
-  const passwordError =
-    touched.password && password.length > 0 && password.length < 8;
+  const phoneError = touched.phone && !phoneValid;
+  const departmentError = touched.department && department.length === 0;
+  const passwordError = touched.password && password.length > 0 && password.length < 8;
+  const confirmPasswordError = touched.confirmPassword && !passwordsMatch;
 
   const showToast = useCallback(
     (message: string, type: "success" | "error") => {
@@ -100,83 +115,56 @@ export default function LoginPage() {
     [],
   );
 
-  // const handleSubmit = async (e: FormEvent) => {
-  //   e.preventDefault();
-  //   setTouched({ email: true, password: true });
-  //   if (!emailValid) return showToast("Please enter a valid email", "error");
-  //   if (password.length < 8)
-  //     return showToast("Password must be at least 8 characters", "error");
-  //   setLoading(true);
-  //   await new Promise((r) => setTimeout(r, 1500));
-  //   setLoading(false);
-  //   showToast("Login successful! Redirecting...", "success");
-  //   setTimeout(() => navigate(`/${role}/dashboard`), 800);
-  // };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setTouched({ email: true, password: true });
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      department: true,
+      password: true,
+      confirmPassword: true,
+    });
 
-    // 1. Client-side validation (keep this!)
+    if (!firstName) return showToast("Please enter your first name", "error");
+    if (!lastName) return showToast("Please enter your last name", "error");
     if (!emailValid) return showToast("Please enter a valid email", "error");
+    if (!phoneValid) return showToast("Please enter a valid phone number", "error");
+    if (!department) return showToast("Please enter your department", "error");
     if (password.length < 8)
       return showToast("Password must be at least 8 characters", "error");
+    if (!passwordsMatch) return showToast("Passwords do not match", "error");
 
     setLoading(true);
 
     try {
-      // 2. The API Call
-      const response = await fetch("https://ibos-system-backend.onrender.com/api/auth/login", {
+      const response = await fetch("https://ibos-system-backend.onrender.com/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }), // Send credentials
+        body: JSON.stringify({
+          name: `${firstName} ${lastName}`,
+          email,
+          password,
+          phone,
+          department,
+        }),
       });
 
       const data = await response.json();
-      if (role != data.data.user.role) {
-        showToast("You are trying to access in wrong role", "error");
-        return;
-      }
-      // console.log(data.data.user.id)
-      setRole(data.data.user.role);
 
       if (!response.ok) {
-        // 3. Handle Backend Errors (e.g., 401 Unauthorized)
-        throw new Error(data.message || "Login failed");
+        throw new Error(data.message || "Registration failed");
       }
 
-      // 4. Handle Success
-      // Save the token (JWT) to localStorage or a cookie
-      localStorage.setItem("accessToken", data.data.accessToken);
-      localStorage.setItem("refreshToken", data.data.refreshToken);
-      localStorage.setItem("id", data.data.user.id);
-
-      showToast("Login successful!", "success");
-      setTimeout(() => navigate(`/${role}/dashboard`), 800);
+      showToast("Registration successful! Please sign in.", "success");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (error: any) {
-      // 5. Handle Network or Server errors
       showToast(error.message, "error");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleForgotSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
-      showToast("Please enter a valid email", "error");
-      return;
-    }
-    showToast("Reset link sent to your email", "success");
-    setForgotOpen(false);
-    setForgotEmail("");
-  };
-
-  const roles: { key: Role; label: string }[] = [
-    { key: "client", label: "Client" },
-    { key: "employee", label: "Employee" },
-    { key: "admin", label: "Admin" },
-  ];
 
   return (
     <div
@@ -212,7 +200,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* Login Card */}
+      {/* Signup Card */}
       <div
         className="animate-fade-in-up relative z-10 w-full max-w-md rounded-2xl p-8"
         style={{
@@ -275,46 +263,73 @@ export default function LoginPage() {
             className="text-xl font-semibold text-white mb-1"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Welcome back
+            Create Client Account
           </h1>
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-            Sign in to your workspace
+            Join IBOS as a client
           </p>
         </div>
 
-        {/* Role Selector */}
-        <div
-          className="flex gap-2 mb-6 p-1 rounded-xl"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          {roles.map((r) => (
-            <button
-              key={r.key}
-              onClick={() => setRole(r.key)}
-              type="button"
-              className="flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200"
-              style={
-                role === r.key
-                  ? {
-                      background: "linear-gradient(135deg, #534AB7, #3d8c6e)",
-                      color: "#fff",
-                      boxShadow: "0 2px 12px rgba(83,74,183,0.35)",
-                    }
-                  : {
-                      color: "rgba(255,255,255,0.4)",
-                    }
-              }
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name Fields */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "rgba(255,255,255,0.6)" }}
+              >
+                First Name
+              </label>
+              <input
+                type="text"
+                value={firstName}
+                placeholder="John"
+                onChange={(e) => setFirstName(e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, firstName: true }))}
+                className="w-full px-4 py-2.5 rounded-lg text-white text-sm outline-none transition-all"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: firstNameError
+                    ? "1px solid #E24B4A"
+                    : "1px solid rgba(255,255,255,0.1)",
+                }}
+              />
+              {firstNameError && (
+                <p className="text-xs mt-1.5" style={{ color: "#E24B4A" }}>
+                  First name is required
+                </p>
+              )}
+            </div>
+            <div>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "rgba(255,255,255,0.6)" }}
+              >
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                placeholder="Doe"
+                onChange={(e) => setLastName(e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, lastName: true }))}
+                className="w-full px-4 py-2.5 rounded-lg text-white text-sm outline-none transition-all"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: lastNameError
+                    ? "1px solid #E24B4A"
+                    : "1px solid rgba(255,255,255,0.1)",
+                }}
+              />
+              {lastNameError && (
+                <p className="text-xs mt-1.5" style={{ color: "#E24B4A" }}>
+                  Last name is required
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Email */}
           <div>
             <label
@@ -340,6 +355,64 @@ export default function LoginPage() {
             {emailError && (
               <p className="text-xs mt-1.5" style={{ color: "#E24B4A" }}>
                 Please enter a valid email address
+              </p>
+            )}
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "rgba(255,255,255,0.6)" }}
+            >
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              placeholder="+1 (555) 123-4567"
+              onChange={(e) => setPhone(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+              className="w-full px-4 py-2.5 rounded-lg text-white text-sm outline-none transition-all"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: phoneError
+                  ? "1px solid #E24B4A"
+                  : "1px solid rgba(255,255,255,0.1)",
+              }}
+            />
+            {phoneError && (
+              <p className="text-xs mt-1.5" style={{ color: "#E24B4A" }}>
+                Please enter a valid phone number
+              </p>
+            )}
+          </div>
+
+          {/* Department */}
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "rgba(255,255,255,0.6)" }}
+            >
+              Department
+            </label>
+            <input
+              type="text"
+              value={department}
+              placeholder="e.g., Sales, Marketing, IT"
+              onChange={(e) => setDepartment(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, department: true }))}
+              className="w-full px-4 py-2.5 rounded-lg text-white text-sm outline-none transition-all"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: departmentError
+                  ? "1px solid #E24B4A"
+                  : "1px solid rgba(255,255,255,0.1)",
+              }}
+            />
+            {departmentError && (
+              <p className="text-xs mt-1.5" style={{ color: "#E24B4A" }}>
+                Department is required
               </p>
             )}
           </div>
@@ -415,30 +488,49 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Remember + Forgot */}
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="custom-checkbox"
-              />
-              <span
-                className="text-sm"
-                style={{ color: "rgba(255,255,255,0.5)" }}
-              >
-                Remember me
-              </span>
-            </label>
-            <button
-              type="button"
-              onClick={() => setForgotOpen(true)}
-              className="text-sm font-medium transition-colors hover:opacity-80"
-              style={{ color: "#7F77DD" }}
+          {/* Confirm Password */}
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "rgba(255,255,255,0.6)" }}
             >
-              Forgot Password?
-            </button>
+              Confirm Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                placeholder="••••••••"
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
+                className="w-full px-4 py-2.5 pr-12 rounded-lg text-white text-sm outline-none transition-all"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: confirmPasswordError
+                    ? "1px solid #E24B4A"
+                    : "1px solid rgba(255,255,255,0.1)",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                style={{ color: "rgba(255,255,255,0.3)" }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.color = "rgba(255,255,255,0.8)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color = "rgba(255,255,255,0.3)")
+                }
+              >
+                <EyeIcon open={showConfirmPassword} />
+              </button>
+            </div>
+            {confirmPasswordError && (
+              <p className="text-xs mt-1.5" style={{ color: "#E24B4A" }}>
+                Passwords do not match
+              </p>
+            )}
           </div>
 
           {/* Submit */}
@@ -466,10 +558,10 @@ export default function LoginPage() {
           >
             {loading ? (
               <>
-                <Spinner /> Signing in...
+                <Spinner /> Creating Account...
               </>
             ) : (
-              "Sign In"
+              "Create Account"
             )}
           </button>
         </form>
@@ -481,7 +573,7 @@ export default function LoginPage() {
             style={{ background: "rgba(255,255,255,0.06)" }}
           />
           <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
-            New to IBOS?
+            Already have an account?
           </span>
           <div
             className="flex-1 h-px"
@@ -491,14 +583,14 @@ export default function LoginPage() {
 
         <p className="text-center text-sm">
           <span style={{ color: "rgba(255,255,255,0.35)" }}>
-            New client?{" "}
+            Sign in as a{" "}
           </span>
           <button
-            onClick={() => navigate("/signup")}
+            onClick={() => navigate("/login")}
             className="font-medium transition-colors hover:opacity-80"
             style={{ color: "#7F77DD" }}
           >
-            Create an account
+            client
           </button>
           <span style={{ color: "rgba(255,255,255,0.35)" }}>
             {" "}or contact your{" "}
@@ -514,85 +606,6 @@ export default function LoginPage() {
           </span>
         </p>
       </div>
-
-      {/* Forgot Password Modal */}
-      {forgotOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-          onClick={() => setForgotOpen(false)}
-        >
-          <div
-            className="animate-fade-in-up w-full max-w-sm mx-4 rounded-2xl p-6"
-            style={{
-              background: "linear-gradient(145deg, #1a1a24 0%, #14141c 100%)",
-              border: "1px solid rgba(127,119,221,0.25)",
-              boxShadow:
-                "0 32px 64px rgba(0,0,0,0.5), 0 0 40px rgba(83,74,183,0.1)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Top glow line */}
-            <div
-              className="absolute top-0 left-6 right-6 h-px rounded-full"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent, rgba(127,119,221,0.4), transparent)",
-              }}
-            />
-
-            <h3
-              className="text-lg font-semibold text-white mb-1"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              Reset Password
-            </h3>
-            <p
-              className="text-sm mb-4"
-              style={{ color: "rgba(255,255,255,0.4)" }}
-            >
-              Enter your email to receive a reset link.
-            </p>
-            <form onSubmit={handleForgotSubmit} className="space-y-4">
-              <input
-                type="email"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="w-full px-4 py-2.5 rounded-lg text-white text-sm outline-none"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              />
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setForgotOpen(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "rgba(255,255,255,0.5)",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-all"
-                  style={{
-                    background: "linear-gradient(135deg, #534AB7, #1D9E75)",
-                    boxShadow: "0 4px 12px rgba(83,74,183,0.3)",
-                  }}
-                >
-                  Send link
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -3,8 +3,11 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
+import SignUpPage from "./pages/SignUpPage";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import ClientDashboard from "./pages/ClientDashboard";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 
 const queryClient = new QueryClient();
 
@@ -15,18 +18,11 @@ const App = () => (
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/client/dashboard"
-            element={<DashboardPage role="client" />}
-          />
-          <Route
-            path="/employee/dashboard"
-            element={<DashboardPage role="employee" />}
-          />
-          <Route
-            path="/admin/dashboard"
-            element={<DashboardPage role="admin" />}
-          />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/client/dashboard" element={<ClientDashboard />} />
+          <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

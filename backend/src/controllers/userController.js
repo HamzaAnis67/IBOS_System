@@ -1,25 +1,25 @@
-const { User } = require('../models');
-const Joi = require('joi');
-const bcrypt = require('bcryptjs');
+const { User } = require("../models");
+const Joi = require("joi");
+const bcrypt = require("bcryptjs");
 
 // Validation schemas
 const createUserSchema = Joi.object({
   name: Joi.string().required().min(2).max(50),
   email: Joi.string().email().required(),
   password: Joi.string().required().min(6),
-  role: Joi.string().valid('admin', 'employee', 'client').required(),
+  role: Joi.string().valid("admin", "employee", "client").required(),
   phone: Joi.string().optional(),
-  department: Joi.string().optional()
+  department: Joi.string().optional(),
 });
 
 const updateUserSchema = Joi.object({
   name: Joi.string().optional().min(2).max(50),
   email: Joi.string().email().optional(),
   password: Joi.string().optional().min(6),
-  role: Joi.string().valid('admin', 'employee', 'client').optional(),
+  role: Joi.string().valid("admin", "employee", "client").optional(),
   phone: Joi.string().optional(),
   department: Joi.string().optional(),
-  isActive: Joi.boolean().optional()
+  isActive: Joi.boolean().optional(),
 });
 
 // Create user (admin only)
@@ -29,7 +29,7 @@ const createUser = async (req, res) => {
     if (error) {
       return res.status(400).json({
         success: false,
-        message: error.details[0].message
+        message: error.details[0].message,
       });
     }
 
@@ -40,7 +40,7 @@ const createUser = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'Email already registered'
+        message: "Email already registered",
       });
     }
 
@@ -51,14 +51,14 @@ const createUser = async (req, res) => {
       password,
       role,
       phone,
-      department
+      department,
     });
 
     await user.save();
 
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
+      message: "User created successfully",
       data: {
         user: {
           id: user._id,
@@ -69,15 +69,15 @@ const createUser = async (req, res) => {
           department: user.department,
           profileImage: user.profileImage,
           isActive: user.isActive,
-          createdAt: user.createdAt
-        }
-      }
+          createdAt: user.createdAt,
+        },
+      },
     });
   } catch (error) {
-    console.error('Create user error:', error);
+    console.error("Create user error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error creating user'
+      message: "Server error creating user",
     });
   }
 };
@@ -93,14 +93,14 @@ const getUsers = async (req, res) => {
     if (role) filter.role = role;
     if (search) {
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { department: { $regex: search, $options: 'i' } }
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { department: { $regex: search, $options: "i" } },
       ];
     }
 
     const users = await User.find(filter)
-      .select('-password')
+      .select("-password")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -115,15 +115,15 @@ const getUsers = async (req, res) => {
           page: parseInt(page),
           limit: parseInt(limit),
           total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+          pages: Math.ceil(total / limit),
+        },
+      },
     });
   } catch (error) {
-    console.error('Get users error:', error);
+    console.error("Get users error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching users'
+      message: "Server error fetching users",
     });
   }
 };
@@ -133,25 +133,25 @@ const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id).select('-password');
+    const user = await User.findById(id).select("-password");
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     res.json({
       success: true,
       data: {
-        user
-      }
+        user,
+      },
     });
   } catch (error) {
-    console.error('Get user by ID error:', error);
+    console.error("Get user by ID error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching user'
+      message: "Server error fetching user",
     });
   }
 };
@@ -163,7 +163,7 @@ const updateUser = async (req, res) => {
     if (error) {
       return res.status(400).json({
         success: false,
-        message: error.details[0].message
+        message: error.details[0].message,
       });
     }
 
@@ -178,43 +178,42 @@ const updateUser = async (req, res) => {
 
     // Check if email is being updated and if it already exists
     if (updates.email) {
-      const existingUser = await User.findOne({ 
-        email: updates.email, 
-        _id: { $ne: id } 
+      const existingUser = await User.findOne({
+        email: updates.email,
+        _id: { $ne: id },
       });
       if (existingUser) {
         return res.status(400).json({
           success: false,
-          message: 'Email already registered'
+          message: "Email already registered",
         });
       }
     }
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      updates,
-      { new: true, runValidators: true }
-    ).select('-password');
+    const user = await User.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     res.json({
       success: true,
-      message: 'User updated successfully',
+      message: "User updated successfully",
       data: {
-        user
-      }
+        user,
+      },
     });
   } catch (error) {
-    console.error('Update user error:', error);
+    console.error("Update user error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error updating user'
+      message: "Server error updating user",
     });
   }
 };
@@ -228,7 +227,7 @@ const deleteUser = async (req, res) => {
     if (id === req.user._id.toString()) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete your own account'
+        message: "Cannot delete your own account",
       });
     }
 
@@ -236,19 +235,65 @@ const deleteUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     res.json({
       success: true,
-      message: 'User deleted successfully'
+      message: "User deleted successfully",
     });
   } catch (error) {
-    console.error('Delete user error:', error);
+    console.error("Delete user error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error deleting user'
+      message: "Server error deleting user",
+    });
+  }
+};
+
+// Get all users (for chat only)
+const getUsersForChat = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, role, search } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build filter
+    const filter = {};
+    if (role) filter.role = role;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { department: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const users = await User.find(filter)
+      .select("name _id role") // ✅ only these fields
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments(filter);
+
+    res.json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Get users error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching users",
     });
   }
 };
@@ -258,5 +303,6 @@ module.exports = {
   getUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUsersForChat,
 };

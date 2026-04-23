@@ -1,11 +1,11 @@
-const { Message, User } = require('../models');
-const Joi = require('joi');
+const { Message, User } = require("../models");
+const Joi = require("joi");
 
 // Validation schemas
 const sendMessageSchema = Joi.object({
   receiver: Joi.string().required(),
   message: Joi.string().required().min(1).max(1000),
-  file: Joi.object().optional()
+  // file: Joi.object().optional()
 });
 
 // Send message
@@ -15,11 +15,11 @@ const sendMessage = async (req, res) => {
     if (error) {
       return res.status(400).json({
         success: false,
-        message: error.details[0].message
+        message: error.details[0].message,
       });
     }
 
-    const { receiver, message, file } = req.body;
+    const { receiver, message } = req.body;
     const sender = req.user._id;
 
     // Validate receiver exists
@@ -27,7 +27,7 @@ const sendMessage = async (req, res) => {
     if (!receiverUser) {
       return res.status(400).json({
         success: false,
-        message: 'Receiver not found'
+        message: "Receiver not found",
       });
     }
 
@@ -35,7 +35,7 @@ const sendMessage = async (req, res) => {
     if (receiver === sender.toString()) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot send message to yourself'
+        message: "Cannot send message to yourself",
       });
     }
 
@@ -43,25 +43,25 @@ const sendMessage = async (req, res) => {
       sender,
       receiver,
       message,
-      file: file || null
+      // file: file || null,
     });
 
     await newMessage.save();
-    await newMessage.populate('sender', 'name email profileImage');
-    await newMessage.populate('receiver', 'name email profileImage');
+    await newMessage.populate("sender", "name email profileImage");
+    await newMessage.populate("receiver", "name email profileImage");
 
     res.status(201).json({
       success: true,
-      message: 'Message sent successfully',
+      message: "Message sent successfully",
       data: {
-        message: newMessage
-      }
+        message: newMessage,
+      },
     });
   } catch (error) {
-    console.error('Send message error:', error);
+    console.error("Send message error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error sending message'
+      message: "Server error sending message",
     });
   }
 };
@@ -77,7 +77,7 @@ const getConversation = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -88,22 +88,22 @@ const getConversation = async (req, res) => {
     const messages = await Message.find({
       $or: [
         { sender: currentUserId, receiver: userId },
-        { sender: userId, receiver: currentUserId }
+        { sender: userId, receiver: currentUserId },
       ],
-      deleted: false
+      deleted: false,
     })
-    .populate('sender', 'name email profileImage')
-    .populate('receiver', 'name email profileImage')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+      .populate("sender", "name email profileImage")
+      .populate("receiver", "name email profileImage")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
     const total = await Message.countDocuments({
       $or: [
         { sender: currentUserId, receiver: userId },
-        { sender: userId, receiver: currentUserId }
+        { sender: userId, receiver: currentUserId },
       ],
-      deleted: false
+      deleted: false,
     });
 
     res.json({
@@ -114,15 +114,15 @@ const getConversation = async (req, res) => {
           page: parseInt(page),
           limit: parseInt(limit),
           total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+          pages: Math.ceil(total / limit),
+        },
+      },
     });
   } catch (error) {
-    console.error('Get conversation error:', error);
+    console.error("Get conversation error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching conversation'
+      message: "Server error fetching conversation",
     });
   }
 };
@@ -137,86 +137,86 @@ const getConversations = async (req, res) => {
       {
         $match: {
           $or: [{ sender: currentUserId }, { receiver: currentUserId }],
-          deleted: false
-        }
+          deleted: false,
+        },
       },
       {
         $project: {
           otherUser: {
             $cond: [
-              { $eq: ['$sender', currentUserId] },
-              '$receiver',
-              '$sender'
-            ]
+              { $eq: ["$sender", currentUserId] },
+              "$receiver",
+              "$sender",
+            ],
           },
           message: 1,
           createdAt: 1,
-          seen: 1
-        }
+          seen: 1,
+        },
       },
       {
-        $sort: { createdAt: -1 }
+        $sort: { createdAt: -1 },
       },
       {
         $group: {
-          _id: '$otherUser',
-          lastMessage: { $first: '$$ROOT' },
+          _id: "$otherUser",
+          lastMessage: { $first: "$$ROOT" },
           unreadCount: {
             $sum: {
               $cond: [
                 {
                   $and: [
-                    { $eq: ['$receiver', currentUserId] },
-                    { $eq: ['$seen', false] }
-                  ]
+                    { $eq: ["$receiver", currentUserId] },
+                    { $eq: ["$seen", false] },
+                  ],
                 },
                 1,
-                0
-              ]
-            }
-          }
-        }
+                0,
+              ],
+            },
+          },
+        },
       },
       {
         $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
       },
       {
-        $unwind: '$user'
+        $unwind: "$user",
       },
       {
         $project: {
           user: {
-            _id: '$user._id',
-            name: '$user.name',
-            email: '$user.email',
-            profileImage: '$user.profileImage',
-            role: '$user.role'
+            _id: "$user._id",
+            name: "$user.name",
+            email: "$user.email",
+            profileImage: "$user.profileImage",
+            role: "$user.role",
           },
           lastMessage: 1,
-          unreadCount: 1
-        }
+          unreadCount: 1,
+        },
       },
       {
-        $sort: { 'lastMessage.createdAt': -1 }
-      }
+        $sort: { "lastMessage.createdAt": -1 },
+      },
     ]);
 
     res.json({
       success: true,
       data: {
-        conversations
-      }
+        conversations,
+      },
     });
   } catch (error) {
-    console.error('Get conversations error:', error);
+    console.error("Get conversations error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching conversations'
+      message: "Server error fetching conversations",
     });
   }
 };
@@ -230,30 +230,30 @@ const markAsSeen = async (req, res) => {
     const message = await Message.findOneAndUpdate(
       { _id: messageId, receiver: currentUserId },
       { seen: true },
-      { new: true }
+      { new: true },
     )
-    .populate('sender', 'name email')
-    .populate('receiver', 'name email');
+      .populate("sender", "name email")
+      .populate("receiver", "name email");
 
     if (!message) {
       return res.status(404).json({
         success: false,
-        message: 'Message not found'
+        message: "Message not found",
       });
     }
 
     res.json({
       success: true,
-      message: 'Message marked as seen',
+      message: "Message marked as seen",
       data: {
-        message
-      }
+        message,
+      },
     });
   } catch (error) {
-    console.error('Mark as seen error:', error);
+    console.error("Mark as seen error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error marking message as seen'
+      message: "Server error marking message as seen",
     });
   }
 };
@@ -265,30 +265,30 @@ const deleteMessage = async (req, res) => {
     const currentUserId = req.user._id;
 
     const message = await Message.findOneAndUpdate(
-      { 
-        _id: messageId, 
-        $or: [{ sender: currentUserId }, { receiver: currentUserId }]
+      {
+        _id: messageId,
+        $or: [{ sender: currentUserId }, { receiver: currentUserId }],
       },
       { deleted: true },
-      { new: true }
+      { new: true },
     );
 
     if (!message) {
       return res.status(404).json({
         success: false,
-        message: 'Message not found'
+        message: "Message not found",
       });
     }
 
     res.json({
       success: true,
-      message: 'Message deleted successfully'
+      message: "Message deleted successfully",
     });
   } catch (error) {
-    console.error('Delete message error:', error);
+    console.error("Delete message error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error deleting message'
+      message: "Server error deleting message",
     });
   }
 };
@@ -298,5 +298,5 @@ module.exports = {
   getConversation,
   getConversations,
   markAsSeen,
-  deleteMessage
+  deleteMessage,
 };
